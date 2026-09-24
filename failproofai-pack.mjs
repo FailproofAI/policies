@@ -1,4 +1,4 @@
-// policy-pack/.entry.generated.ts
+// ../../../../tmp/claude-1000/corepack/.entry.generated.ts
 import { customPolicies } from "failproofai";
 
 // src/hooks/builtin-policies.ts
@@ -16,6 +16,7 @@ var POLICY_CATALOG = [
     displayTitle: "Redacted JWT tokens from tool output",
     impact: "Stops the agent from echoing auth tokens it saw in command output.",
     match: { events: ["PostToolUse"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Sanitize"
   },
@@ -25,6 +26,7 @@ var POLICY_CATALOG = [
     displayTitle: "Redacted API keys from tool output",
     impact: "Catches OpenAI / Anthropic / GitHub / AWS / Stripe / Google keys before the model sees them.",
     match: { events: ["PostToolUse"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Sanitize",
     params: {
@@ -41,6 +43,7 @@ var POLICY_CATALOG = [
     displayTitle: "Redacted database connection strings from tool output",
     impact: "Strips embedded DB credentials before they reach the model context.",
     match: { events: ["PostToolUse"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Sanitize"
   },
@@ -50,6 +53,7 @@ var POLICY_CATALOG = [
     displayTitle: "Redacted PEM private keys from tool output",
     impact: "Prevents private key bodies from being echoed into chat context.",
     match: { events: ["PostToolUse"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Sanitize"
   },
@@ -59,6 +63,7 @@ var POLICY_CATALOG = [
     impact: "Strips Authorization: Bearer values before they hit the model.",
     description: "Stop Claude from reading Authorization Bearer tokens in tool responses",
     match: { events: ["PostToolUse"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Sanitize"
   },
@@ -68,6 +73,8 @@ var POLICY_CATALOG = [
     impact: "Env vars often contain secrets; blocking `env` / `printenv` keeps them out of the model context.",
     description: "Prevent commands that read environment variables",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["env-secrets-dump", "secret-exposure"],
     defaultEnabled: true,
     category: "Environment"
   },
@@ -77,6 +84,8 @@ var POLICY_CATALOG = [
     impact: "`.env` files routinely contain API keys and DB credentials.",
     description: "Block reading/writing .env files",
     match: { events: ["PreToolUse"] },
+    authority: "reviewable",
+    reviewedBy: ["secret-exposure"],
     defaultEnabled: true,
     category: "Environment"
   },
@@ -86,6 +95,8 @@ var POLICY_CATALOG = [
     impact: "Stops the agent from peeking at neighboring repos or your home directory.",
     description: "Block file reads outside the session working directory",
     match: { events: ["PreToolUse"], toolNames: ["Read", "Glob", "Grep", "Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["read-outside-workspace"],
     defaultEnabled: false,
     category: "Environment",
     params: {
@@ -102,6 +113,7 @@ var POLICY_CATALOG = [
     impact: "Sudo gives the agent root — blocked unless explicitly allow-listed.",
     description: "Block sudo commands",
     match: { events: ["PreToolUse", "PermissionRequest"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Dangerous Commands",
     params: {
@@ -118,6 +130,7 @@ var POLICY_CATALOG = [
     impact: "`curl ... | sh` runs unverified remote code on your machine.",
     description: "Block piping downloads to shell",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Dangerous Commands"
   },
@@ -127,6 +140,8 @@ var POLICY_CATALOG = [
     impact: "Catches catastrophic `rm -rf /` and Windows equivalents.",
     description: "Prevent catastrophic deletions",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["destructive-deletion"],
     defaultEnabled: false,
     category: "Dangerous Commands",
     params: {
@@ -142,9 +157,13 @@ var POLICY_CATALOG = [
     displayTitle: "Tried to disable, pause or modify failproofai itself",
     impact: "An agent that can pause or remove enforcement can switch off every other policy.",
     description: "Block failproofai CLI commands, self-pause and uninstallation",
-    match: { events: ["PreToolUse", "PermissionRequest"], toolNames: ["Bash"] },
+    match: {
+      events: ["PreToolUse", "PermissionRequest"],
+      toolNames: ["Bash", "Write", "Edit", "NotebookEdit"]
+    },
     defaultEnabled: true,
     alwaysOn: true,
+    authority: "hard",
     category: "Dangerous Commands"
   },
   {
@@ -153,6 +172,8 @@ var POLICY_CATALOG = [
     impact: "kubectl can change live cluster state — gated unless allow-listed.",
     description: "Block kubectl commands (Kubernetes cluster mutations)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -169,6 +190,8 @@ var POLICY_CATALOG = [
     impact: "Terraform mutates real infrastructure — gated unless allow-listed.",
     description: "Block terraform and tofu (OpenTofu) commands",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -185,6 +208,8 @@ var POLICY_CATALOG = [
     impact: "AWS CLI can spend money or break prod — gated.",
     description: "Block aws CLI commands",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -201,6 +226,8 @@ var POLICY_CATALOG = [
     impact: "gcloud can spend money or break prod — gated.",
     description: "Block gcloud (Google Cloud) CLI commands",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -217,6 +244,8 @@ var POLICY_CATALOG = [
     impact: "az can spend money or break prod — gated.",
     description: "Block az (Azure) CLI commands",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -233,6 +262,8 @@ var POLICY_CATALOG = [
     impact: "Helm releases mutate cluster state — gated.",
     description: "Block helm commands",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["production-infra-change"],
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -249,6 +280,7 @@ var POLICY_CATALOG = [
     impact: "Catches `gh workflow run`, `gh pr merge`, `gh secret set`, etc.",
     description: "Block gh CLI pipeline-trigger subcommands (workflow run, run rerun/cancel, pr merge, release create/delete, cache delete, secret set/delete)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Infra Commands",
     params: {
@@ -265,6 +297,8 @@ var POLICY_CATALOG = [
     impact: "Stops the agent from creating `.pem`, `id_rsa`, `credentials.json`, etc.",
     description: "Block writing secret key files",
     match: { events: ["PreToolUse"], toolNames: ["Write"] },
+    authority: "reviewable",
+    reviewedBy: ["secret-exposure"],
     defaultEnabled: false,
     category: "Dangerous Commands",
     params: {
@@ -281,6 +315,7 @@ var POLICY_CATALOG = [
     impact: "Direct pushes to a protected branch bypass review.",
     description: "Block pushing to main/master",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: true,
     category: "Git",
     params: {
@@ -297,6 +332,8 @@ var POLICY_CATALOG = [
     impact: "Force-pushes rewrite history and can clobber teammates' work.",
     description: "Prevent force-pushing to any branch",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["git-history-rewrite"],
     defaultEnabled: false,
     category: "Git"
   },
@@ -306,6 +343,7 @@ var POLICY_CATALOG = [
     impact: "Work should land via PR — direct commits skip review.",
     description: "Block git commits and merges on main/master branch",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Git",
     params: {
@@ -322,6 +360,8 @@ var POLICY_CATALOG = [
     impact: "Amending after a push rewrites history that others may have pulled.",
     description: "Warns before amending git commits, which rewrites history",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["git-history-rewrite"],
     defaultEnabled: false,
     category: "Git"
   },
@@ -331,8 +371,26 @@ var POLICY_CATALOG = [
     impact: "Stash deletions are permanent and silent.",
     description: "Warns before permanently deleting stashed changes",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Git"
+  },
+  {
+    name: "warn-git-clean",
+    displayTitle: "Tried to delete untracked or ignored files with git clean",
+    impact: "`git clean -fdx` takes `.env`, local config and unstaged work — git never had a copy of any of it.",
+    description: "Warns before git clean deletes untracked directories (-d) or ignored files (-x / -X)",
+    match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
+    defaultEnabled: false,
+    category: "Git",
+    params: {
+      destructiveFlags: {
+        type: "string[]",
+        description: "git clean flag letters that make it worth warning about, checked alongside --force. Narrow to ['x','X'] to allow `git clean -fd`, or widen with 'f' to warn on a bare `git clean -f`.",
+        default: ["d", "x", "X"]
+      }
+    }
   },
   {
     name: "warn-all-files-staged",
@@ -340,6 +398,7 @@ var POLICY_CATALOG = [
     impact: "Wide stages routinely catch generated files or secrets you didn't intend to commit.",
     description: "Warns before staging all working tree files with git add -A / . / --all",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Git"
   },
@@ -349,6 +408,8 @@ var POLICY_CATALOG = [
     impact: "Easy way to wipe a table by accident.",
     description: "Warn before executing destructive SQL (DROP/TRUNCATE/DELETE without WHERE) via database clients",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["database-destruction"],
     defaultEnabled: false,
     category: "Database"
   },
@@ -358,6 +419,7 @@ var POLICY_CATALOG = [
     impact: "ALTER TABLE operations can lock tables and break readers.",
     description: "Warns before SQL schema changes (ALTER TABLE with column or rename operations)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Database"
   },
@@ -367,6 +429,7 @@ var POLICY_CATALOG = [
     impact: "Publishes are irreversible — `npm publish` / `cargo publish` shouldn't happen without intent.",
     description: "Warn before publishing packages to public registries (npm, PyPI, crates.io, RubyGems, etc.)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Packages & System"
   },
@@ -376,6 +439,8 @@ var POLICY_CATALOG = [
     impact: "`npm i -g`, `cargo install`, `pip --user` pollute your machine outside the project.",
     description: "Warns before installing packages globally (npm -g, cargo install, etc.)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "reviewable",
+    reviewedBy: ["system-modification"],
     defaultEnabled: false,
     category: "Packages & System"
   },
@@ -385,6 +450,7 @@ var POLICY_CATALOG = [
     impact: "Mixing package managers creates lockfile churn for your team.",
     description: "Blocks non-preferred package managers and tells Claude to use an allowed one (e.g., uv instead of pip)",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Packages & System",
     params: {
@@ -406,6 +472,7 @@ var POLICY_CATALOG = [
     impact: "Catches accidentally large file writes (logs, binaries, model dumps).",
     description: "Warn before writing files larger than 1MB (configurable via thresholdKb param)",
     match: { events: ["PreToolUse"], toolNames: ["Write"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Packages & System",
     params: {
@@ -422,6 +489,7 @@ var POLICY_CATALOG = [
     impact: "Catches `nohup` / `&` / `screen` / `tmux` / `disown` patterns that the agent often forgets to clean up.",
     description: "Warns before starting detached or background processes",
     match: { events: ["PreToolUse"], toolNames: ["Bash"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Packages & System"
   },
@@ -431,6 +499,7 @@ var POLICY_CATALOG = [
     impact: "Usually a sign of a stuck loop burning tokens.",
     description: "Warn when the same tool is called 3+ times with identical parameters",
     match: { events: ["PreToolUse"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "AI Behavior"
   },
@@ -440,6 +509,7 @@ var POLICY_CATALOG = [
     impact: "Work not in a commit is invisible to teammates and easy to lose.",
     description: "Require all changes to be committed before Claude stops",
     match: { events: ["Stop"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Workflow"
   },
@@ -449,6 +519,7 @@ var POLICY_CATALOG = [
     impact: "Local-only commits won't trigger CI or be reviewable.",
     description: "Require all commits to be pushed to remote before Claude stops",
     match: { events: ["Stop"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Workflow",
     params: {
@@ -470,6 +541,7 @@ var POLICY_CATALOG = [
     impact: "Branches without PRs don't get reviewed.",
     description: "Require a pull request to exist for the current branch before Claude stops",
     match: { events: ["Stop"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Workflow",
     params: {
@@ -486,6 +558,7 @@ var POLICY_CATALOG = [
     impact: "Conflicting branches can't merge — surface them early.",
     description: "Require the current branch to merge cleanly with the base branch before Claude stops",
     match: { events: ["Stop"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Workflow",
     params: {
@@ -502,6 +575,7 @@ var POLICY_CATALOG = [
     impact: "Failing CI blocks deploy.",
     description: "Require CI checks to pass on the current HEAD commit before Claude stops (ignores stale runs on prior commits)",
     match: { events: ["Stop"] },
+    authority: "hard",
     defaultEnabled: false,
     category: "Workflow"
   }
@@ -517,17 +591,6 @@ function deny(reason) {
 function instruct(reason) {
   return { decision: "instruct", reason };
 }
-
-// src/hooks/hook-logger.ts
-import {
-  appendFileSync,
-  renameSync,
-  mkdirSync,
-  existsSync,
-  statSync
-} from "node:fs";
-import { join } from "node:path";
-
 // src/hooks/fp-home.ts
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -541,6 +604,14 @@ var atHome = (home, ...parts) => home ? resolve(failproofaiHome(home), ...parts)
 var logsDir = (home) => atHome(home, "logs");
 
 // src/hooks/hook-logger.ts
+import {
+  appendFileSync,
+  renameSync,
+  mkdirSync,
+  existsSync,
+  statSync
+} from "node:fs";
+import { join } from "node:path";
 var LEVEL_ORDER = { info: 0, warn: 1, error: 2 };
 var MAX_FILE_SIZE = 512 * 1024;
 var LOG_FILENAME = "hooks.log";
@@ -606,6 +677,33 @@ function hookLogWarn(msg) {
   emitStderr("WARN", msg);
   appendToFile("WARN", msg);
 }
+
+// src/hooks/policy-authority.ts
+var SEMANTIC_POLICY_NAMES = [
+  "destructive-deletion",
+  "production-infra-change",
+  "git-history-rewrite",
+  "push-to-protected-branch",
+  "commit-on-protected-branch",
+  "secret-exposure",
+  "credential-exfiltration",
+  "remote-code-execution",
+  "privilege-escalation",
+  "database-destruction",
+  "read-outside-workspace",
+  "agent-config-tampering",
+  "system-modification",
+  "env-secrets-dump",
+  "external-destructive-action",
+  "external-data-egress"
+];
+var SEMANTIC_REVIEWER_NAMES = new Set(SEMANTIC_POLICY_NAMES);
+var warnedAuthority = new Set;
+
+// src/hooks/pack-manifest.ts
+var RESERVED_PROBE_IDS = new Set(["exempt", "user_asked"]);
+var SEMANTIC_TOOL_CLASSES = new Set(["shell", "write", "read", "network", "other"]);
+var PARAM_TYPES = new Set(["string", "number", "boolean", "string[]", "pattern[]"]);
 
 // src/hooks/builtin-policies.ts
 function isAgentInternalPath(resolved2) {
@@ -717,6 +815,7 @@ var COMMAND_PREFIX_TOKENS = new Set([
   "dlx",
   "exec",
   "run",
+  "eval",
   "node",
   "bun",
   "deno",
@@ -741,12 +840,24 @@ var COMMAND_PREFIX_TOKENS = new Set([
   "ash"
 ]);
 var SELF_BINARY_TOKEN_RE = /(?:^|\/)failproofai[^/]*$/;
+var SELF_ENTRY_PATH_RE = /failproofai\/(?:dist\/(?:cli|index)\.mjs|bin\/failproofai\.mjs)$/;
 var CONFIG_SUBCOMMAND_RE = /^(?:config|configure|setup)$/;
 var PAUSE_FLAG_RE = /^--pause(?:=|$)/;
 var ENV_ASSIGNMENT_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 var RUNNER_OPERAND_RE = /^\d+[a-z]*$/i;
-function classifySelfInvocation(command) {
+function classifySelfInvocation(raw) {
+  const command = raw.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, "$$$1");
   let found = null;
+  const selfVars = new Set;
+  for (const [, name, value] of command.matchAll(/(?:^|[\s;&|])([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s;&|]+)/g)) {
+    const bare = value.replace(/^["']|["']$/g, "");
+    if (SELF_BINARY_TOKEN_RE.test(bare) || SELF_ENTRY_PATH_RE.test(bare))
+      selfVars.add(name);
+  }
+  const isSelfVarRef = (token) => {
+    const m = /^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?$/.exec(token);
+    return m ? selfVars.has(m[1]) : false;
+  };
   for (const segment of command.split(SEGMENT_SEPARATORS)) {
     const tokens = segment.split(/\s+/).filter(Boolean);
     let i = 0;
@@ -759,8 +870,9 @@ function classifySelfInvocation(command) {
     }
     if (i >= tokens.length)
       continue;
-    if (!SELF_BINARY_TOKEN_RE.test(tokens[i]))
+    if (!SELF_BINARY_TOKEN_RE.test(tokens[i]) && !SELF_ENTRY_PATH_RE.test(tokens[i]) && !isSelfVarRef(tokens[i])) {
       continue;
+    }
     const args = tokens.slice(i + 1);
     const configAt = args.findIndex((a) => CONFIG_SUBCOMMAND_RE.test(a));
     if (configAt !== -1 && args.slice(configAt + 1).some((a) => PAUSE_FLAG_RE.test(a))) {
@@ -812,9 +924,597 @@ var SECRET_FILE_RE = /\.(?:pem|key)$/;
 var SECRET_FILE_ID_RSA_RE = /id_rsa/;
 var SECRET_FILE_CREDENTIALS_RE = /credentials/;
 var GIT_COMMIT_MERGE_RE = /git\s+(commit|merge|rebase|cherry-pick)\b/;
+var FAILPROOFAI_STATE_PATH_RE = /\.failproofai(?:\/|\b)/;
+var STATE_READ_COMMANDS = new Set([
+  "cat",
+  "bat",
+  "less",
+  "more",
+  "head",
+  "tail",
+  "nl",
+  "strings",
+  "xxd",
+  "od",
+  "jq",
+  "yq",
+  "diff",
+  "cmp",
+  "wc",
+  "sort",
+  "uniq",
+  "column",
+  "awk",
+  "cut",
+  "ls",
+  "dir",
+  "tree",
+  "stat",
+  "file",
+  "du",
+  "df",
+  "readlink",
+  "realpath",
+  "basename",
+  "dirname",
+  "pwd",
+  "test",
+  "find",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "ag",
+  "ack",
+  "md5sum",
+  "sha1sum",
+  "sha256sum",
+  "shasum",
+  "cksum",
+  "cd",
+  "pushd",
+  "popd",
+  "cp",
+  "rsync",
+  "install",
+  "tee",
+  "sed",
+  "true",
+  "false",
+  ":",
+  "echo",
+  "printf",
+  "[",
+  "[[",
+  "]",
+  "]]",
+  "test",
+  "read",
+  "for",
+  "select",
+  "case",
+  "done",
+  "fi",
+  "esac"
+]);
+var SHELL_KEYWORD_PREFIXES = new Set(["do", "then", "else", "elif", "if", "while", "until", "!"]);
+var LOOP_HEADER_RE = /(?:^|[\s(])(?:while|until|for|select)\s/;
+var COPY_COMMANDS = new Set(["cp", "rsync", "install"]);
+var OPERAND_WRITE_COMMANDS = new Set(["tee"]);
+var SECOND_OPERAND_WRITERS = new Set(["uniq", "xxd"]);
+var OUTPUT_FLAG_COMMANDS = {
+  sort: ["-o", "--output"],
+  tree: ["-o", "--output"],
+  curl: ["-o", "--output", "--output-dir", "-D", "--dump-header", "--trace", "--trace-ascii"]
+};
+var FIND_WRITE_ACTIONS = new Set(["-fprint", "-fprint0", "-fprintf", "-fls"]);
+var SAFE_EXEC_COMMANDS = new Set([
+  "cat",
+  "bat",
+  "head",
+  "tail",
+  "nl",
+  "strings",
+  "xxd",
+  "od",
+  "jq",
+  "yq",
+  "wc",
+  "ls",
+  "stat",
+  "file",
+  "du",
+  "readlink",
+  "realpath",
+  "basename",
+  "dirname",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "md5sum",
+  "sha1sum",
+  "sha256sum",
+  "shasum",
+  "cksum",
+  "echo",
+  "printf",
+  "true",
+  ":"
+]);
+var GIT_DESTRUCTIVE_SUBCOMMANDS = new Set([
+  "clean",
+  "rm",
+  "restore",
+  "checkout",
+  "reset",
+  "stash"
+]);
+var GIT_FLAGS_WITH_OPERANDS = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+function gitSubcommandIndex(args) {
+  for (let i = 0;i < args.length; i++) {
+    const arg = args[i];
+    if (GIT_FLAGS_WITH_OPERANDS.has(arg)) {
+      i++;
+      continue;
+    }
+    if (arg.startsWith("-"))
+      continue;
+    return i;
+  }
+  return -1;
+}
+function gitSubcommand(args) {
+  const i = gitSubcommandIndex(args);
+  return i < 0 ? undefined : args[i];
+}
+var STATE_MENTION_COMMANDS = new Set(["git", "gh", "glab", "echo", "printf", "curl", "code", "open"]);
+var FIND_EXEC_ACTIONS = new Set(["-exec", "-execdir", "-ok", "-okdir"]);
+var PIPELINE_SEPARATORS = /\|\||&&|[;\n\r&]+/;
+var VAR_REFERENCE_RE = /\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g;
+var STATE_GLOB_CANDIDATES = [
+  ".failproofai",
+  "~/.failproofai",
+  "$HOME/.failproofai",
+  "${HOME}/.failproofai",
+  "/root/.failproofai",
+  "/home/u/.failproofai",
+  "/Users/u/.failproofai"
+];
+var GLOB_DECOYS = [
+  ".config",
+  ".cache",
+  ".local",
+  ".git",
+  ".npm",
+  ".ssh",
+  ".bashrc",
+  "node_modules",
+  "dist",
+  "build",
+  "target",
+  "coverage",
+  "tmp",
+  "src",
+  "~/.config",
+  "~/.cache",
+  "$HOME/.config",
+  "${HOME}/.cache",
+  "/home/u/.config",
+  "/Users/u/.config",
+  "/root/.cache",
+  "/tmp/build",
+  "a",
+  "foo.txt",
+  "test-failures"
+];
+function globCouldNameState(raw) {
+  const stripped = raw.replace(/^[()]+|[()]+$/g, "");
+  return globWordCouldNameState(raw) || stripped !== raw && globWordCouldNameState(stripped);
+}
+function globWordCouldNameState(token) {
+  if (!GLOB_METACHAR_RE.test(token))
+    return false;
+  for (const word of expandBraces(token)) {
+    if (wordNamesState(word))
+      return true;
+  }
+  return false;
+}
+var BRACE_EXPANSION_LIMIT = 4096;
+var BRACE_EXPANSION_ROUNDS = 24;
+function expandBraces(token) {
+  let words = [token];
+  for (let round = 0;round < BRACE_EXPANSION_ROUNDS; round++) {
+    const next = [];
+    let expanded = false;
+    for (const word of words) {
+      const group = firstBraceGroup(word);
+      if (!group) {
+        next.push(word);
+        continue;
+      }
+      expanded = true;
+      for (const alternative of group.alternatives) {
+        next.push(word.slice(0, group.start) + alternative + word.slice(group.end + 1));
+      }
+    }
+    if (!expanded)
+      return next;
+    if (next.length > BRACE_EXPANSION_LIMIT)
+      return [collapseBraces(token)];
+    words = next;
+  }
+  return words.map(collapseBraces);
+}
+function collapseBraces(word) {
+  let out = "";
+  let depth = 0;
+  for (const ch of word) {
+    if (ch === "{") {
+      if (depth === 0)
+        out += "*";
+      depth++;
+      continue;
+    }
+    if (ch === "}") {
+      if (depth > 0)
+        depth--;
+      continue;
+    }
+    if (depth === 0)
+      out += ch;
+  }
+  return out;
+}
+function firstBraceGroup(word) {
+  const start = word.indexOf("{");
+  if (start === -1)
+    return null;
+  let depth = 0;
+  const alternatives = [];
+  let current = "";
+  for (let i = start;i < word.length; i++) {
+    const ch = word[i];
+    if (ch === "{") {
+      depth++;
+      if (depth === 1)
+        continue;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        alternatives.push(current);
+        return { start, end: i, alternatives };
+      }
+    } else if (ch === "," && depth === 1) {
+      alternatives.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  return null;
+}
+function wordNamesState(word) {
+  if (FAILPROOFAI_STATE_PATH_RE.test(word))
+    return true;
+  const segments = word.split("/");
+  for (let end = 1;end <= segments.length; end++) {
+    if (globPrefixNamesState(segments.slice(0, end).join("/")))
+      return true;
+  }
+  return false;
+}
+var GLOB_METACHAR_RE = /[*?[{]|[@+!]\(/;
+function compileGlobPattern(token) {
+  let pattern = "";
+  for (let i = 0;i < token.length; i++) {
+    const extended = extglobAt(token, i);
+    if (extended) {
+      pattern += extended.source;
+      i = extended.end;
+      continue;
+    }
+    const ch = token[i];
+    if (ch === "*")
+      pattern += "[^/]*";
+    else if (ch === "?")
+      pattern += "[^/]";
+    else if (ch === "[") {
+      const bracket = bracketExpressionAt(token, i);
+      if (!bracket) {
+        pattern += "\\[";
+        continue;
+      }
+      pattern += bracket.source;
+      i = bracket.end;
+    } else
+      pattern += ch.replace(/[.+^${}()|\\\]]/g, "\\$&");
+  }
+  return pattern;
+}
+function extglobAt(token, start) {
+  const operator = token[start];
+  if (!"?*+@!".includes(operator) || token[start + 1] !== "(")
+    return null;
+  const alternatives = [];
+  let current = "";
+  let depth = 0;
+  let i = start + 1;
+  for (;i < token.length; i++) {
+    const ch = token[i];
+    if (ch === "(") {
+      depth++;
+      if (depth === 1)
+        continue;
+    } else if (ch === ")") {
+      depth--;
+      if (depth === 0) {
+        alternatives.push(current);
+        break;
+      }
+    } else if (ch === "|" && depth === 1) {
+      alternatives.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (i >= token.length)
+    return null;
+  if (operator === "!")
+    return { source: "[^/]*", end: i };
+  const body = alternatives.map((alternative) => compileGlobPattern(alternative)).join("|");
+  const quantifier = operator === "?" ? "?" : operator === "*" ? "*" : operator === "+" ? "+" : "";
+  return { source: `(?:${body})${quantifier}`, end: i };
+}
+function bracketExpressionAt(token, start) {
+  let i = start + 1;
+  let negated = false;
+  if (token[i] === "!" || token[i] === "^") {
+    negated = true;
+    i++;
+  }
+  let body = "";
+  if (token[i] === "]") {
+    body += "]";
+    i++;
+  }
+  while (i < token.length && token[i] !== "]") {
+    const inner = token[i] === "[" ? token[i + 1] : undefined;
+    if (inner === ":" || inner === "." || inner === "=") {
+      const close = token.indexOf(`${inner}]`, i + 2);
+      if (close !== -1) {
+        body += token.slice(i, close + 2);
+        i = close + 2;
+        continue;
+      }
+    }
+    body += token[i];
+    i++;
+  }
+  if (i >= token.length)
+    return null;
+  if (/\[[.=:]/.test(body))
+    return { source: "[^/]", end: i };
+  const escaped = body.replace(/[\\\]]/g, "\\$&");
+  if (escaped.length === 0)
+    return { source: "[^/]", end: i };
+  return { source: `[${negated ? "^" : ""}${escaped}]`, end: i };
+}
+function globPrefixNamesState(token) {
+  if (!GLOB_METACHAR_RE.test(token))
+    return false;
+  const pattern = "^" + compileGlobPattern(token);
+  let re;
+  try {
+    re = new RegExp(pattern + "$");
+  } catch {
+    return false;
+  }
+  if (!STATE_GLOB_CANDIDATES.some((candidate) => re.test(candidate)))
+    return false;
+  return !GLOB_DECOYS.some((decoy) => re.test(decoy));
+}
+function substitutionBodies(command) {
+  const bodies = [];
+  for (let i = 0;i < command.length; i++) {
+    if (command[i] === "`") {
+      const close = command.indexOf("`", i + 1);
+      if (close === -1)
+        break;
+      bodies.push(command.slice(i + 1, close));
+      i = close;
+      continue;
+    }
+    if (command[i] !== "$" || command[i + 1] !== "(")
+      continue;
+    let depth = 1;
+    let j = i + 2;
+    for (;j < command.length && depth > 0; j++) {
+      if (command[j] === "(")
+        depth++;
+      else if (command[j] === ")")
+        depth--;
+    }
+    if (depth === 0)
+      bodies.push(command.slice(i + 2, j - 1));
+    i = j - 1;
+  }
+  return bodies;
+}
+var REDIRECT_TARGET_RE = /\d*>{1,2}\|?\s*("[^"]*"|'[^']*'|[^\s;&|<>]+)/g;
+function bareToken(token) {
+  return token.replace(/^[(){}'"]+|[(){}'"]+$/g, "");
+}
+function unquotedToken(token) {
+  return token.replace(/^['"]+|['"]+$/g, "");
+}
+function commandBasename(token) {
+  const bare = bareToken(token);
+  return bare.slice(bare.lastIndexOf("/") + 1);
+}
+function commandWords(simpleCommand) {
+  const tokens = simpleCommand.trim().split(/\s+/).map(bareToken).filter(Boolean);
+  let i = 0;
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (/^\d*(?:>{1,2}\|?|<{1,3})/.test(token)) {
+      i += /^\d*(?:>{1,2}\|?|<{1,3})$/.test(token) ? 2 : 1;
+      continue;
+    }
+    const skippable = ENV_ASSIGNMENT_RE.test(token) || token.startsWith("-") || RUNNER_OPERAND_RE.test(token) || SHELL_KEYWORD_PREFIXES.has(token) || COMMAND_PREFIX_TOKENS.has(commandBasename(token));
+    if (!skippable)
+      break;
+    i++;
+  }
+  return tokens.slice(i);
+}
+function simpleCommandDestroys(words, namesState) {
+  if (words.length === 0)
+    return false;
+  const head = commandBasename(words[0]);
+  const args = words.slice(1);
+  if (head === "find") {
+    if (args.some((a) => a === "-delete"))
+      return true;
+    if (args.some((a) => FIND_WRITE_ACTIONS.has(a)))
+      return true;
+    return args.some((a, i) => FIND_EXEC_ACTIONS.has(a) && !SAFE_EXEC_COMMANDS.has(commandBasename(args[i + 1] ?? "")));
+  }
+  if (head === "sed") {
+    if (args.some((a) => a.startsWith("-i") || a.startsWith("--in-place")))
+      return true;
+    return args.some((a, i) => /(?:^|[;}/\s])w$/.test(a) && namesState(args[i + 1] ?? "")) || args.some((a) => /(?:^|[;}/\s])w\s*\S*\.failproofai/.test(a));
+  }
+  if (head === "awk" || head === "gawk" || head === "mawk") {
+    return args.some((a) => /system\s*\(|\|\s*["']|\|&/.test(a));
+  }
+  if (COPY_COMMANDS.has(head)) {
+    if (args.includes("--remove-source-files") && args.some((a) => namesState(a)))
+      return true;
+    const targetAt = args.findIndex((a) => a === "-t" || a === "--target-directory");
+    if (targetAt !== -1 && namesState(args[targetAt + 1] ?? ""))
+      return true;
+    if (args.some((a) => a.startsWith("--target-directory=") && namesState(a)))
+      return true;
+    const operands = args.filter((a) => !a.startsWith("-"));
+    const destination = operands[operands.length - 1];
+    return destination !== undefined && namesState(destination);
+  }
+  if (OPERAND_WRITE_COMMANDS.has(head)) {
+    return args.some((a) => !a.startsWith("-") && namesState(a));
+  }
+  if (SECOND_OPERAND_WRITERS.has(head)) {
+    const operands = args.filter((a) => !a.startsWith("-"));
+    return operands.length > 1 && namesState(operands[operands.length - 1]);
+  }
+  if (head === "git") {
+    const subcommand = gitSubcommand(args);
+    return subcommand !== undefined && GIT_DESTRUCTIVE_SUBCOMMANDS.has(subcommand);
+  }
+  if (writesViaOutputFlag(head, args, namesState))
+    return true;
+  if (STATE_READ_COMMANDS.has(head) || STATE_MENTION_COMMANDS.has(head))
+    return false;
+  return true;
+}
+function writesViaOutputFlag(head, args, namesState) {
+  const flags = OUTPUT_FLAG_COMMANDS[head];
+  if (!flags)
+    return false;
+  for (let i = 0;i < args.length; i++) {
+    const arg = args[i];
+    const long = flags.find((f) => f.startsWith("--") && arg.startsWith(`${f}=`));
+    if (long && namesState(arg))
+      return true;
+    const bundled = /^-[A-Za-z]*[oD]$/.test(arg) && flags.includes(`-${arg[arg.length - 1]}`);
+    if ((flags.includes(arg) || bundled) && namesState(args[i + 1] ?? ""))
+      return true;
+  }
+  return false;
+}
+function destroysFailproofaiState(command, depth = 0) {
+  if (depth === 0) {
+    const bodies = substitutionBodies(command);
+    for (let i = 0;i < bodies.length && i < 64; i++) {
+      if (destroysFailproofaiState(bodies[i], 1))
+        return true;
+      bodies.push(...substitutionBodies(bodies[i]));
+    }
+  }
+  const assignments = [
+    ...command.matchAll(/(?:^|[\s;&|(])(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s;&|)]+)/g)
+  ].map(([, name, value]) => [name, value.replace(/^["']|["']$/g, "")]);
+  const stateVars = new Set;
+  for (let pass = 0;pass < assignments.length + 1; pass++) {
+    const before = stateVars.size;
+    for (const [name, value] of assignments) {
+      const holdsState = FAILPROOFAI_STATE_PATH_RE.test(value) || [...value.matchAll(VAR_REFERENCE_RE)].some(([, ref]) => stateVars.has(ref));
+      if (holdsState)
+        stateVars.add(name);
+    }
+    if (stateVars.size === before)
+      break;
+  }
+  const namesState = (text) => {
+    if (FAILPROOFAI_STATE_PATH_RE.test(text))
+      return true;
+    for (const [, name] of text.matchAll(VAR_REFERENCE_RE)) {
+      if (stateVars.has(name))
+        return true;
+    }
+    return text.split(/\s+/).some((token) => globCouldNameState(unquotedToken(token)));
+  };
+  let cwdInState = false;
+  let parenDepth = 0;
+  let cdParenDepth = null;
+  let loopCarriesState = false;
+  for (const pipeline of command.split(PIPELINE_SEPARATORS)) {
+    if (!pipeline.trim())
+      continue;
+    const simpleCommands = pipeline.split("|");
+    const reachesState = namesState(pipeline) || cwdInState || loopCarriesState;
+    if (reachesState && LOOP_HEADER_RE.test(pipeline))
+      loopCarriesState = true;
+    if (/(?:^|\s)done(?:\s|$)/.test(pipeline))
+      loopCarriesState = false;
+    if (reachesState) {
+      for (const [, target] of pipeline.matchAll(REDIRECT_TARGET_RE)) {
+        if (namesState(target.replace(/^["']|["']$/g, "")))
+          return true;
+      }
+    }
+    for (const simple of simpleCommands) {
+      parenDepth += (simple.match(/\(/g) ?? []).length;
+      const words = commandWords(simple);
+      const head = words.length > 0 ? commandBasename(words[0]) : "";
+      if (head === "cd" || head === "pushd") {
+        const operand = words.slice(1).find((w) => !w.startsWith("-"));
+        cwdInState = operand !== undefined && namesState(operand);
+        cdParenDepth = cwdInState ? parenDepth : null;
+      } else if (head === "popd") {
+        cwdInState = false;
+        cdParenDepth = null;
+      } else if (reachesState && words.length > 0 && simpleCommandDestroys(words, namesState)) {
+        return true;
+      }
+      parenDepth -= (simple.match(/\)/g) ?? []).length;
+      if (cdParenDepth !== null && parenDepth < cdParenDepth) {
+        cwdInState = false;
+        cdParenDepth = null;
+      }
+    }
+  }
+  return false;
+}
 var FAILPROOFAI_UNINSTALL_RE = /(?:npm\s+(?:uninstall|remove|un|r)\s.*failproofai|bun\s+remove\s.*failproofai|yarn\s+global\s+remove\s+failproofai|pnpm\s+(?:remove|uninstall|un)\s.*failproofai)/;
 var GIT_AMEND_RE = /\bgit\s+commit\b.*--amend\b/;
 var GIT_STASH_DROP_RE = /\bgit\s+stash\s+(?:drop|clear)\b/;
+var GIT_CMD_RE = /^(?:\/\S*\/)?git$/;
+var SHORT_FLAG_CLUSTER_RE = /^-[A-Za-z]+$/;
+var GIT_CLEAN_FORCE_WAIVED_RE = /^clean\.requireforce=(?:false|0|no|off)$/i;
+var GIT_CLEAN_DESTRUCTIVE_FLAGS = ["d", "x", "X"];
 var GIT_ADD_ALL_RE = /\bgit\s+add\s+(?:-A\b|--all\b|\.(?:\s|$|;|&&|\|\|))/;
 var NPM_GLOBAL_RE = /\bnpm\s+(?:install|i)\b(?=.*(?:\s-g\b|--global\b))/;
 var YARN_GLOBAL_RE = /\byarn\s+global\s+add\b/;
@@ -1365,12 +2065,14 @@ function blockSecretsWrite(ctx) {
 var READ_LIKE_CMDS = /(?:^|;|&&|\|\||\|)\s*(?:ls|find|cat|head|tail|less|more|wc|file|stat|tree|du)\s/;
 function extractAbsolutePaths(command) {
   const paths = [];
-  const pathRe = /(?<![a-zA-Z0-9_.\-~\\*?:=])(?:~\/[^\s;|&"'()\[\]{}]*|~(?=\s|$|[;|&"'()\[\]{}])|\/[^\s;|&"'()\[\]{}]*)/g;
+  const pathRe = /(?<![a-zA-Z0-9_.\-~\\*?:=/])(?:~\/[^\s;|&"'()\[\]{}]*|~(?=\s|$|[;|&"'()\[\]{}])|\/[^\s;|&"'()\[\]{}]*)/g;
   function addPaths(s) {
     pathRe.lastIndex = 0;
     let m;
     while ((m = pathRe.exec(s)) !== null) {
       let p = m[0];
+      if (/^\/{2,}$/.test(p))
+        continue;
       if (p === "~")
         p = homedir2();
       else if (p.startsWith("~/"))
@@ -1473,6 +2175,13 @@ function blockWorkOnMain(ctx) {
   return allow();
 }
 function blockFailproofaiCommands(ctx) {
+  if (ctx.toolName === "Write" || ctx.toolName === "Edit" || ctx.toolName === "NotebookEdit") {
+    const path = getFilePath(ctx) || (ctx.toolInput?.notebook_path ?? "");
+    if (FAILPROOFAI_STATE_PATH_RE.test(path)) {
+      return deny("Writing to failproofai's own state would switch enforcement off. " + "If a policy is blocking legitimate work, say so and let the operator decide.");
+    }
+    return allow();
+  }
   if (ctx.toolName !== "Bash")
     return allow();
   const cmd = getCommand(ctx);
@@ -1486,6 +2195,9 @@ function blockFailproofaiCommands(ctx) {
   }
   if (FAILPROOFAI_UNINSTALL_RE.test(cmd) || FAILPROOFAI_UNINSTALL_RE.test(unescaped)) {
     return deny("Uninstalling failproofai is blocked");
+  }
+  if (destroysFailproofaiState(cmd) || destroysFailproofaiState(unescaped)) {
+    return deny("Deleting, moving or overwriting failproofai's own state would switch enforcement off. " + "If a policy is blocking legitimate work, say so and let the operator decide.");
   }
   return allow();
 }
@@ -1562,6 +2274,77 @@ function warnGitStashDrop(ctx) {
   const cmd = getCommand(ctx);
   if (GIT_STASH_DROP_RE.test(cmd)) {
     return instruct("STOP: This command permanently deletes stashed changes (git stash drop/clear). Stash entries cannot be recovered after deletion. Confirm with the user before executing.");
+  }
+  return allow();
+}
+function readGitCleanFlags(args) {
+  const letters = new Set;
+  let force = false;
+  let dryRun = false;
+  let sawEndOfOptions = false;
+  for (const token of args) {
+    if (token === "--") {
+      sawEndOfOptions = true;
+      continue;
+    }
+    if (sawEndOfOptions)
+      continue;
+    if (token === "--force") {
+      force = true;
+      continue;
+    }
+    if (token === "--dry-run") {
+      dryRun = true;
+      continue;
+    }
+    if (token.startsWith("--"))
+      continue;
+    if (!SHORT_FLAG_CLUSTER_RE.test(token))
+      continue;
+    for (const letter of token.slice(1)) {
+      if (letter === "f")
+        force = true;
+      if (letter === "n")
+        dryRun = true;
+      letters.add(letter);
+    }
+  }
+  if (force)
+    letters.add("f");
+  return { force, dryRun, letters };
+}
+function gitCleanForceWaived(globalOptions) {
+  for (let i = 0;i < globalOptions.length; i++) {
+    const token = globalOptions[i];
+    const value = token === "-c" ? globalOptions[i + 1] : token.startsWith("-c") ? token.slice(2) : undefined;
+    if (value !== undefined && GIT_CLEAN_FORCE_WAIVED_RE.test(value))
+      return true;
+  }
+  return false;
+}
+function warnGitClean(ctx) {
+  if (ctx.toolName !== "Bash")
+    return allow();
+  const destructiveFlags = ctx.params?.destructiveFlags ?? GIT_CLEAN_DESTRUCTIVE_FLAGS;
+  if (destructiveFlags.length === 0)
+    return allow();
+  for (const segment of shellSegments(getCommand(ctx))) {
+    const tokens = parseArgvTokens(segment);
+    const gitIdx = tokens.findIndex((t) => GIT_CMD_RE.test(t));
+    if (gitIdx < 0)
+      continue;
+    const args = tokens.slice(gitIdx + 1);
+    const subIdx = gitSubcommandIndex(args);
+    if (subIdx < 0 || args[subIdx] !== "clean")
+      continue;
+    const flags = readGitCleanFlags(args.slice(subIdx + 1));
+    if (flags.dryRun)
+      continue;
+    if (!flags.force && !gitCleanForceWaived(args.slice(0, subIdx)))
+      continue;
+    if (!destructiveFlags.some((f) => flags.letters.has(f)))
+      continue;
+    return instruct("STOP: This command deletes untracked files from the working tree (git clean). Git has no copy of " + "untracked or ignored files, so nothing it removes can be recovered: -d takes whole untracked " + "directories, and -x / -X also take .gitignore'd files such as .env, local config and scratch work. " + "Re-run it with --dry-run and confirm the exact paths with the user before executing.");
   }
   return allow();
 }
@@ -1953,6 +2736,7 @@ var POLICY_IMPLEMENTATIONS = {
   "block-work-on-main": blockWorkOnMain,
   "warn-git-amend": warnGitAmend,
   "warn-git-stash-drop": warnGitStashDrop,
+  "warn-git-clean": warnGitClean,
   "warn-all-files-staged": warnAllFilesStaged,
   "warn-destructive-sql": warnDestructiveSql,
   "warn-schema-alteration": warnSchemaAlteration,
@@ -1986,14 +2770,18 @@ var BUILTIN_POLICIES = POLICY_CATALOG.map((entry) => ({
   fn: POLICY_IMPLEMENTATIONS[entry.name]
 }));
 
-// policy-pack/.entry.generated.ts
+// ../../../../tmp/claude-1000/corepack/.entry.generated.ts
 for (const policy of BUILTIN_POLICIES) {
   if (policy.alwaysOn)
     continue;
   customPolicies.add({
     name: policy.name,
     description: policy.description,
+    category: policy.category,
+    defaultEnabled: policy.defaultEnabled === true,
     match: policy.match,
-    fn: policy.fn
+    fn: policy.fn,
+    ...policy.authority !== undefined ? { authority: policy.authority } : {},
+    ...policy.reviewedBy !== undefined ? { reviewedBy: policy.reviewedBy } : {}
   });
 }
