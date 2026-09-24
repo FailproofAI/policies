@@ -15,9 +15,16 @@ publish your own, [skip to the bottom](#publish-your-own).
 
 ## What is in it
 
-38 policies across 9 categories. Ten are on by default; the rest are opt-in,
+39 policies across 9 categories. Ten are on by default; the rest are opt-in,
 because switching on a stranger's every policy unattended is an opinion nobody
 asked us for.
+
+Fifteen of them are **reviewable**: with your own Jev endpoint configured, the
+semantic checks in [FailproofAI/jev-policies](https://github.com/FailproofAI/jev-policies)
+may clear their deny when the judgement goes the other way — so a pattern that
+matches `.env.example` as readily as `.env` stops being a false block. With no
+Jev configured they behave exactly as they always have, and nothing is cleared.
+The other 24 are **hard** and are never clearable, whatever Jev answers.
 
 | Category | Guards against |
 |---|---|
@@ -25,11 +32,31 @@ asked us for.
 | **Environment** | reading and writing `.env`, environment-variable dumps, reads outside the project |
 | **Dangerous Commands** | `sudo`, `curl \| sh`, `rm -rf`, writing secret key files |
 | **Infra Commands** | `kubectl`, `terraform`, `aws`, `gcloud`, `az`, `helm`, `gh` pipeline triggers |
-| **Git** | pushing to `main`, force-push, working on `main`, amend, stash drop, `git add -A` |
+| **Git** | pushing to `main`, force-push, working on `main`, amend, stash drop, `git add -A`, `git clean -fdx` |
 | **Database** | destructive SQL, schema alteration |
 | **Packages & System** | publishing to registries, global installs, wrong package manager, large writes, background processes |
 | **AI Behavior** | repeated identical tool calls |
 | **Workflow** | require commit / push / PR / no-conflicts / green CI before the agent stops |
+
+## The two tiers
+
+This pack is the **deterministic floor**: patterns, run on your machine, same
+answer every time. It stands on its own and needs nothing configured.
+
+[FailproofAI/jev-policies](https://github.com/FailproofAI/jev-policies) is the
+**judgement**: 16 semantic checks, each a set of typed yes/no questions put to
+Jev about the same tool call. Ten of them are the reviewers named by the policies
+here; the other six catch things no pattern could, and only ever add a deny of
+their own.
+
+```bash
+failproofai policies add FailproofAI/policies       # the floor
+failproofai policies add FailproofAI/jev-policies   # the judgement
+```
+
+Install this one alone and you have a working guard. Install that one alone and
+you have judgement with nothing beneath it — on the labelled corpus this tier
+alone catches 37 attacks Jev misses, so taking both is the point.
 
 See exactly what you would be installing, without downloading any code:
 
