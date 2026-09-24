@@ -1,0 +1,5 @@
+
+# `failproofai publish` writes its three release assets here. They are uploaded,
+# not source, and a publisher running the command inside this repo should not
+# find them staged.
+dist-pack/

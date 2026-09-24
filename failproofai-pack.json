@@ -1,6 +1,6 @@
 {
   "id": "FailproofAI/policies",
-  "version": "1.0.7-beta.1",
+  "version": "1.0.7-beta.2",
   "effect": "enforce",
   "policies": [
     {

@@ -1,4 +1,4 @@
-// ../../../../tmp/claude-1000/corepack/.entry.generated.ts
+// ../../../../tmp/claude-1000/corepack4/.entry.generated.ts
 import { customPolicies } from "failproofai";
 
 // src/hooks/builtin-policies.ts
@@ -2770,7 +2770,7 @@ var BUILTIN_POLICIES = POLICY_CATALOG.map((entry) => ({
   fn: POLICY_IMPLEMENTATIONS[entry.name]
 }));
 
-// ../../../../tmp/claude-1000/corepack/.entry.generated.ts
+// ../../../../tmp/claude-1000/corepack4/.entry.generated.ts
 for (const policy of BUILTIN_POLICIES) {
   if (policy.alwaysOn)
     continue;
@@ -2781,6 +2781,7 @@ for (const policy of BUILTIN_POLICIES) {
     defaultEnabled: policy.defaultEnabled === true,
     match: policy.match,
     fn: policy.fn,
+    ...policy.params !== undefined ? { params: policy.params } : {},
     ...policy.authority !== undefined ? { authority: policy.authority } : {},
     ...policy.reviewedBy !== undefined ? { reviewedBy: policy.reviewedBy } : {}
   });
